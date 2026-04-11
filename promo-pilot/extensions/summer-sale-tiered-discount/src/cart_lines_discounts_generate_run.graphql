@@ -1,0 +1,20 @@
+query CartInput {
+  cart {
+    lines {
+      id
+      quantity
+      merchandise {
+        ... on ProductVariant {
+          product {
+            inCollections(ids: ["gid://shopify/Collection/466796577005"]) {
+              isMember
+            }
+          }
+        }
+      }
+    }
+  }
+  discount {
+    discountClasses
+  }
+}
