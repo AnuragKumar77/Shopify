@@ -1,0 +1,27 @@
+# query DeliveryInput {
+#   cart {
+#     deliveryGroups {
+#       id
+#     }
+#   }
+#   discount {
+#     discountClasses
+#   }
+# }
+
+# cart_delivery_options_discounts_generate_run.graphql
+#
+# This query feeds the cart.delivery.options.discounts.generate.run target.
+# We only need deliveryGroups.id and discount.discountClasses.
+# Keep it minimal — only query what your function logic actually reads.
+
+query DeliveryInput {
+  cart {
+    deliveryGroups {
+      id
+    }
+  }
+  discount {
+    discountClasses
+  }
+}

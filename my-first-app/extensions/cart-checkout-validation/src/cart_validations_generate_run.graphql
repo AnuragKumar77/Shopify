@@ -1,0 +1,19 @@
+query CartValidationsGenerateRunInput {
+  cart {
+    lines {
+      quantity
+      merchandise {
+        ... on ProductVariant {
+          product {
+            handle
+            max_orders: metafield(namespace: "custom", key: "max_amount") {
+              value
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+

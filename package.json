@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "@shopify/app": "^3.58.2"
+  }
+}

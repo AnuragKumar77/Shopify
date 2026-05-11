@@ -1,0 +1,22 @@
+# Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
+
+client_id = "5d9583e1f6673f3f3e71749f4b3830fd"
+name = "my-first-app"
+application_url = "https://shopify.dev/apps/default-app-home"
+embedded = true
+handle = "my-first-app-1861"
+
+[build]
+
+[webhooks]
+api_version = "2025-07"
+
+[access_scopes]
+# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
+scopes = ""
+
+[auth]
+redirect_urls = [ "https://shopify.dev/apps/default-app-home/api/auth" ]
+
+[pos]
+embedded = false
