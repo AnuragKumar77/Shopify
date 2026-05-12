@@ -21,5 +21,9 @@ description = "t:description"
   command = ""
   path = "dist/function.wasm"
 
+  # [extensions.input.variables]
+  # namespace = "$app"
+  # key = "function-configuration"
+
   [extensions.ui]
   handle="smart-discount-ui"

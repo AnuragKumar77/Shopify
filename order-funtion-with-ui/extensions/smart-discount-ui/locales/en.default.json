@@ -1,20 +1,23 @@
 {
-  "name": "[Example] Discount UI extension",
-  "description": "Discount UI extension",
-  "title": "Select which discount types to apply at checkout",
+  "name": "Unique Product Order Discount",
+  "description": "Apply order discounts based on unique product count in the cart",
   "loading": "Loading...",
-  "label": "Percentage off",
-  "collections": {
-    "buttonLabel": "Choose collections",
+  "error": "Unable to save settings. Please try again.",
+  "discountValue": {
+    "heading": "Discount value",
+    "rateLabel": "Discount % per unique product",
+    "minUniqueLabel": "Minimum unique products required",
+    "maxDiscountLabel": "Maximum discount cap"
+  },
+  "appliesTo": {
+    "heading": "Applies to",
+    "label": "Eligibility",
     "allProducts": "All products",
-    "collections": "Collections",
-    "appliesTo": "Applies to"
-  },
-  "discountClasses": {
-    "product": "Product discount",
-    "order": "Order discount",
-    "shipping": "Shipping discount"
-  },
-  "error": "Unable to update discount types. Please try again."
+    "excludeProducts": "Exclude specific products",
+    "excludeCollections": "Exclude specific collections",
+    "browseProducts": "Browse products",
+    "browseCollections": "Browse collections",
+    "noProductsSelected": "No products excluded yet.",
+    "noCollectionsSelected": "No collections excluded yet."
+  }
 }
-

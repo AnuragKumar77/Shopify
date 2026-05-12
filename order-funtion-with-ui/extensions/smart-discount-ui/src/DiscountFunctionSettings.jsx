@@ -1,131 +1,30 @@
-
 import "@shopify/ui-extensions/preact";
-import {render} from "preact";
-import {useState, useEffect, useMemo} from "preact/hooks";
+import { render } from "preact";
+import { useState, useEffect, useMemo } from "preact/hooks";
 
 export default async () => {
   render(<App />, document.body);
 };
 
-function AppliesToCollections({
-  onClickAdd,
-  onClickRemove,
-  value,
-  defaultValue,
-  i18n,
-  appliesTo,
-  onAppliesToChange,
-}) {
-  return (
-    <s-section>
-      <s-box display="none">
-        <s-text-field
-          value={value.map(({id}) => id).join(",")}
-          label=""
-          name="collectionsIds"
-          defaultValue={defaultValue.map(({id}) => id).join(",")}
-        />
-      </s-box>
-      <s-stack gap="base">
-        <s-stack direction="inline" alignItems="end" gap="base">
-          <s-select
-            label={i18n.translate("collections.appliesTo")}
-            name="appliesTo"
-            value={appliesTo}
-            onChange={event =>
-              onAppliesToChange(event.currentTarget.value)
-            }
-          >
-            <s-option value="all">
-              {i18n.translate("collections.allProducts")}
-            </s-option>
-            <s-option value="collections">
-              {i18n.translate("collections.collections")}
-            </s-option>
-          </s-select>
-
-          {appliesTo === "all" ? null : (
-            <s-box inlineSize="180px">
-              <s-button onClick={onClickAdd}>
-                {i18n.translate("collections.buttonLabel")}
-              </s-button>
-            </s-box>
-          )}
-        </s-stack>
-        <CollectionsSection collections={value} onClickRemove={onClickRemove} />
-      </s-stack>
-    </s-section>
-  );
-}
-
-function CollectionsSection({
-  collections,
-  onClickRemove,
-}) {
-  if (collections.length === 0) {
-    return null;
-  }
-
-  return collections.map(collection => (
-    <s-stack
-      direction="inline"
-      alignItems="center"
-      justifyContent="space-between"
-      key={collection.id}
-    >
-      <s-link
-        href={`shopify://admin/collections/${collection.id.split("/").pop()}`}
-        target="_blank"
-      >
-        {collection.title}
-      </s-link>
-      <s-button variant="tertiary" onClick={() => onClickRemove(collection.id)}>
-        <s-icon type="x-circle" />
-      </s-button>
-    </s-stack>
-  ));
-}
-
 function App() {
   const {
     applyExtensionMetafieldChange,
     i18n,
-    initialPercentages,
-    onPercentageValueChange,
-    percentages,
+    config,
+    initialConfig,
+    onConfigChange,
     resetForm,
-    initialCollections,
-    collections,
+    loading,
+    error,
+    excludedProducts,
+    excludedCollections,
     appliesTo,
     onAppliesToChange,
-    removeCollection,
-    onSelectedCollections,
-    loading,
+    onPickExcludedProducts,
+    removeExcludedProduct,
+    onPickExcludedCollections,
+    removeExcludedCollection,
   } = useExtensionData();
-
-  const [error, setError] = useState();
-
-  const {discounts} = shopify;
-  const discountClassesSignalValue = discounts?.discountClasses?.value ?? [];
-
-  const handleToggleDiscountClass = async (nextValue) => {
-    const nextDiscountClasses = discountClassesSignalValue.includes(
-      nextValue,
-    )
-      ? discountClassesSignalValue.filter((c) => c !== nextValue)
-      : [...discountClassesSignalValue, nextValue];
-
-    const result =
-      await discounts?.updateDiscountClasses?.(nextDiscountClasses);
-
-    if (!result.success) {
-      setError(i18n.translate("error"));
-    }
-
-    if (result.success && error) {
-      setError(undefined);
-    }
-  };
 
   if (loading) {
     return <s-text>{i18n.translate("loading")}</s-text>;
@@ -133,264 +32,338 @@ function App() {
 
   return (
     <s-function-settings
-      onSubmit={event => {
+      onSubmit={(event) => {
         event.waitUntil?.(applyExtensionMetafieldChange());
       }}
       onReset={resetForm}
     >
-      <s-heading>{i18n.translate("title")}</s-heading>
+      {error ? (
+        <s-section>
+          <s-banner tone="critical">{error}</s-banner>
+        </s-section>
+      ) : null}
+
+      {/* ── Discount value ───────────────────────────────────────── */}
       <s-section>
         <s-stack gap="base">
-          {error ? <s-banner tone="critical">{error}</s-banner> : null}
-          <s-stack gap="none">
-            <s-checkbox
-              checked={discountClassesSignalValue.includes("product")}
-              onChange={() => handleToggleDiscountClass("product")}
-              label={i18n.translate("discountClasses.product")}
-              disabled={
-                discountClassesSignalValue.length === 1 &&
-                discountClassesSignalValue.includes("product")
-              }
+          <s-heading>{i18n.translate("discountValue.heading")}</s-heading>
+
+          <s-number-field
+            label={i18n.translate("discountValue.rateLabel")}
+            name="ratePerUnique"
+            value={String(config.ratePerUnique)}
+            defaultValue={String(initialConfig.ratePerUnique)}
+            min={1}
+            max={25}
+            step={1}
+            suffix="%"
+            onChange={(event) =>
+              onConfigChange("ratePerUnique", Number(event.currentTarget.value))
+            }
+          />
+
+          <s-number-field
+            label={i18n.translate("discountValue.minUniqueLabel")}
+            name="minUnique"
+            value={String(config.minUnique)}
+            defaultValue={String(initialConfig.minUnique)}
+            min={1}
+            max={10}
+            step={1}
+            onChange={(event) =>
+              onConfigChange("minUnique", Number(event.currentTarget.value))
+            }
+          />
+
+          <s-number-field
+            label={i18n.translate("discountValue.maxDiscountLabel")}
+            name="maxDiscount"
+            value={String(config.maxDiscount)}
+            defaultValue={String(initialConfig.maxDiscount)}
+            min={1}
+            max={100}
+            step={1}
+            suffix="%"
+            onChange={(event) =>
+              onConfigChange("maxDiscount", Number(event.currentTarget.value))
+            }
+          />
+        </s-stack>
+      </s-section>
+
+      {/* ── Applies to ───────────────────────────────────────────── */}
+      <s-section>
+        <s-stack gap="base">
+          <s-heading>{i18n.translate("appliesTo.heading")}</s-heading>
+
+          {/* Hidden fields — carry IDs through form submit */}
+          <s-box display="none">
+            <s-text-field
+              label=""
+              name="excludedProductIds"
+              value={excludedProducts.map((p) => p.id).join(",")}
+              defaultValue={initialConfig.excludedProductIds.join(",")}
             />
-
-            {discountClassesSignalValue.includes("product") ? (
-              <s-stack gap="none">
-                <s-number-field
-                  label={i18n.translate("label")}
-                  name="product"
-                  value={String(percentages.product)}
-                  defaultValue={String(initialPercentages.product)}
-                  min={0}
-                  max={100}
-                  onChange={event =>
-                    onPercentageValueChange(
-                      "product",
-                      event.currentTarget.value,
-                    )
-                  }
-                  suffix="%"
-                />
-                <AppliesToCollections
-                  onClickAdd={onSelectedCollections}
-                  onClickRemove={removeCollection}
-                  value={collections}
-                  defaultValue={initialCollections}
-                  i18n={i18n}
-                  appliesTo={appliesTo}
-                  onAppliesToChange={onAppliesToChange}
-                />
-              </s-stack>
-            ) : null}
-          </s-stack>
-
-          <s-divider />
-
-          <s-stack gap="none">
-            <s-checkbox
-              checked={discountClassesSignalValue.includes("order")}
-              onChange={() => handleToggleDiscountClass("order")}
-              label={i18n.translate("discountClasses.order")}
-              disabled={
-                discountClassesSignalValue.length === 1 &&
-                discountClassesSignalValue.includes("order")
-              }
+            <s-text-field
+              label=""
+              name="excludedCollectionIds"
+              value={excludedCollections.map((c) => c.id).join(",")}
+              defaultValue={initialConfig.excludedCollectionIds.join(",")}
             />
+          </s-box>
 
-            {discountClassesSignalValue.includes("order") ? (
-              <s-number-field
-                label={i18n.translate("label")}
-                name="order"
-                value={String(percentages.order)}
-                defaultValue={String(initialPercentages.order)}
-                min={0}
-                max={100}
-                onChange={event =>
-                  onPercentageValueChange("order", event.currentTarget.value)
-                }
-                suffix="%"
-              />
-            ) : null}
-          </s-stack>
+          <s-select
+            label={i18n.translate("appliesTo.label")}
+            name="appliesTo"
+            value={appliesTo}
+            onChange={(event) => onAppliesToChange(event.currentTarget.value)}
+          >
+            <s-option value="all">
+              {i18n.translate("appliesTo.allProducts")}
+            </s-option>
+            <s-option value="products">
+              {i18n.translate("appliesTo.excludeProducts")}
+            </s-option>
+            <s-option value="collections">
+              {i18n.translate("appliesTo.excludeCollections")}
+            </s-option>
+          </s-select>
 
-          <s-divider />
+          {/* Excluded Products list */}
+          {appliesTo === "products" ? (
+            <s-stack gap="base">
+              <s-button onClick={onPickExcludedProducts}>
+                {i18n.translate("appliesTo.browseProducts")}
+              </s-button>
+              {excludedProducts.length === 0 ? (
+                <s-text tone="subdued">
+                  {i18n.translate("appliesTo.noProductsSelected")}
+                </s-text>
+              ) : (
+                excludedProducts.map((product) => (
+                  <s-stack
+                    key={product.id}
+                    direction="inline"
+                    alignItems="center"
+                    justifyContent="space-between"
+                  >
+                    <s-link
+                      href={`shopify://admin/products/${product.id.split("/").pop()}`}
+                      target="_blank"
+                    >
+                      {product.title}
+                    </s-link>
+                    <s-button
+                      variant="tertiary"
+                      onClick={() => removeExcludedProduct(product.id)}
+                    >
+                      <s-icon type="x-circle" />
+                    </s-button>
+                  </s-stack>
+                ))
+              )}
+            </s-stack>
+          ) : null}
 
-          <s-stack gap="none">
-            <s-checkbox
-              checked={discountClassesSignalValue.includes("shipping")}
-              onChange={() => handleToggleDiscountClass("shipping")}
-              label={i18n.translate("discountClasses.shipping")}
-              disabled={
-                discountClassesSignalValue.length === 1 &&
-                discountClassesSignalValue.includes("shipping")
-              }
-            />
-
-            {discountClassesSignalValue.includes("shipping") ? (
-              <s-number-field
-                label={i18n.translate("label")}
-                name="shipping"
-                value={String(percentages.shipping)}
-                defaultValue={String(initialPercentages.shipping)}
-                min={0}
-                max={100}
-                onChange={event =>
-                  onPercentageValueChange("shipping", event.currentTarget.value)
-                }
-                suffix="%"
-              />
-            ) : null}
-          </s-stack>
+          {/* Excluded Collections list */}
+          {appliesTo === "collections" ? (
+            <s-stack gap="base">
+              <s-button onClick={onPickExcludedCollections}>
+                {i18n.translate("appliesTo.browseCollections")}
+              </s-button>
+              {excludedCollections.length === 0 ? (
+                <s-text tone="subdued">
+                  {i18n.translate("appliesTo.noCollectionsSelected")}
+                </s-text>
+              ) : (
+                excludedCollections.map((col) => (
+                  <s-stack
+                    key={col.id}
+                    direction="inline"
+                    alignItems="center"
+                    justifyContent="space-between"
+                  >
+                    <s-link
+                      href={`shopify://admin/collections/${col.id.split("/").pop()}`}
+                      target="_blank"
+                    >
+                      {col.title}
+                    </s-link>
+                    <s-button
+                      variant="tertiary"
+                      onClick={() => removeExcludedCollection(col.id)}
+                    >
+                      <s-icon type="x-circle" />
+                    </s-button>
+                  </s-stack>
+                ))
+              )}
+            </s-stack>
+          ) : null}
         </s-stack>
       </s-section>
     </s-function-settings>
   );
 }
 
+// ─── Hook ────────────────────────────────────────────────────────────────────
 function useExtensionData() {
-  const {applyMetafieldChange, i18n, data, resourcePicker, query} = shopify;
+  const { applyMetafieldChange, i18n, data, resourcePicker, query } = shopify;
 
-  const metafieldConfig = useMemo(
+  const initialConfig = useMemo(
     () =>
       parseMetafield(
-        data?.metafields?.find(
-          metafield => metafield.key === "function-configuration",
-        )?.value,
+        data?.metafields?.find((mf) => mf.key === "function-configuration")
+          ?.value,
       ),
     [data?.metafields],
   );
 
-  const [percentages, setPercentages] = useState(metafieldConfig.percentages);
-  const [initialCollections, setInitialCollections] = useState(
-    [],
-  );
-  const [collections, setCollections] = useState([]);
-  const [appliesTo, setAppliesTo] = useState("all");
-  const [loading, setLoading] = useState(false);
+  const [config, setConfig]                   = useState(initialConfig);
+  const [loading, setLoading]                 = useState(false);
+  const [error, setError]                     = useState(null);
+  const [excludedProducts, setExcludedProducts]         = useState([]);
+  const [initialExcludedProducts, setInitialExcludedProducts] = useState([]);
+  const [excludedCollections, setExcludedCollections]   = useState([]);
+  const [initialExcludedCollections, setInitialExcludedCollections] = useState([]);
+  const [appliesTo, setAppliesTo]             = useState("all");
+
+  // Hydrate titles from saved GIDs on mount
+  useEffect(() => {
+    const hydrate = async () => {
+      setLoading(true);
+      try {
+        const [products, collections] = await Promise.all([
+          initialConfig.excludedProductIds.length
+            ? fetchNodes(initialConfig.excludedProductIds, "Product", query)
+            : [],
+          initialConfig.excludedCollectionIds.length
+            ? fetchNodes(initialConfig.excludedCollectionIds, "Collection", query)
+            : [],
+        ]);
+        setExcludedProducts(products);
+        setInitialExcludedProducts(products);
+        setExcludedCollections(collections);
+        setInitialExcludedCollections(collections);
+        if (collections.length > 0) setAppliesTo("collections");
+        else if (products.length > 0) setAppliesTo("products");
+        else setAppliesTo("all");
+      } finally {
+        setLoading(false);
+      }
+    };
+    hydrate();
+  }, []);
 
   useEffect(() => {
-    const fetchCollections = async () => {
-      setLoading(true);
-      const selectedCollections = await getCollections(
-        metafieldConfig.collectionIds,
-        query,
-      );
-      setInitialCollections(selectedCollections);
-      setCollections(selectedCollections);
-      setLoading(false);
-      setAppliesTo(selectedCollections.length > 0 ? "collections" : "all");
-    };
-    fetchCollections();
-  }, [metafieldConfig.collectionIds, query]);
+    setConfig(initialConfig);
+  }, [initialConfig.ratePerUnique, initialConfig.minUnique, initialConfig.maxDiscount]);
 
-  const onPercentageValueChange = async (type, value) => {
-    setPercentages(prev => ({
-      ...prev,
-      [type]: Number(value),
-    }));
-  };
+  const onConfigChange = (key, value) =>
+    setConfig((prev) => ({ ...prev, [key]: value }));
 
   const onAppliesToChange = (value) => {
     setAppliesTo(value);
-    if (value === "all") {
-      setCollections([]);
-    }
+    if (value === "all")         { setExcludedProducts([]); setExcludedCollections([]); }
+    else if (value === "products")    { setExcludedCollections([]); }
+    else if (value === "collections") { setExcludedProducts([]); }
   };
 
-  async function applyExtensionMetafieldChange() {
-    await applyMetafieldChange({
+  const onPickExcludedProducts = async () => {
+    const sel = await resourcePicker({
+      type: "product",
+      selectionIds: excludedProducts.map(({ id }) => ({ id })),
+      action: "select",
+      multiple: true,
+      filter: { archived: false, variants: false },
+    });
+    if (sel) setExcludedProducts(sel.map(({ id, title }) => ({ id, title })));
+  };
+
+  const removeExcludedProduct = (id) =>
+    setExcludedProducts((prev) => prev.filter((p) => p.id !== id));
+
+  const onPickExcludedCollections = async () => {
+    const sel = await resourcePicker({
+      type: "collection",
+      selectionIds: excludedCollections.map(({ id }) => ({ id })),
+      action: "select",
+      multiple: true,
+    });
+    if (sel) setExcludedCollections(sel.map(({ id, title }) => ({ id, title })));
+  };
+
+  const removeExcludedCollection = (id) =>
+    setExcludedCollections((prev) => prev.filter((c) => c.id !== id));
+
+  const applyExtensionMetafieldChange = async () => {
+    setError(null);
+    const result = await applyMetafieldChange({
       type: "updateMetafield",
       namespace: "$app",
       key: "function-configuration",
-      value: JSON.stringify({
-        cartLinePercentage: percentages.product,
-        orderPercentage: percentages.order,
-        deliveryPercentage: percentages.shipping,
-        collectionIds: collections.map(({id}) => id),
-      }),
       valueType: "json",
+      value: JSON.stringify({
+        ratePerUnique:         config.ratePerUnique,
+        minUnique:             config.minUnique,
+        maxDiscount:           config.maxDiscount,
+        excludedProductIds:    excludedProducts.map(({ id }) => id),
+        excludedCollectionIds: excludedCollections.map(({ id }) => id),
+      }),
     });
-    setInitialCollections(collections);
-  }
+    if (result.type === "error") {
+      setError(result.message || i18n.translate("error"));
+      return;
+    }
+    setInitialExcludedProducts(excludedProducts);
+    setInitialExcludedCollections(excludedCollections);
+  };
 
   const resetForm = () => {
-    setPercentages(metafieldConfig.percentages);
-    setCollections(initialCollections);
-    setAppliesTo(initialCollections.length > 0 ? "collections" : "all");
-  };
-
-  const onSelectedCollections = async () => {
-    const selection = await resourcePicker({
-      type: "collection",
-      selectionIds: collections.map(({id}) => ({id})),
-      action: "select",
-      multiple: true,
-      filter: {
-        archived: true,
-        variants: true,
-      },
-    });
-    setCollections(selection ?? []);
-  };
-
-  const removeCollection = (id) => {
-    setCollections(prev => prev.filter(collection => collection.id !== id));
+    setConfig(initialConfig);
+    setExcludedProducts(initialExcludedProducts);
+    setExcludedCollections(initialExcludedCollections);
+    setError(null);
+    if (initialExcludedCollections.length > 0) setAppliesTo("collections");
+    else if (initialExcludedProducts.length > 0) setAppliesTo("products");
+    else setAppliesTo("all");
   };
 
   return {
-    applyExtensionMetafieldChange,
-    i18n,
-    initialPercentages: metafieldConfig.percentages,
-    onPercentageValueChange,
-    percentages,
-    resetForm,
-    collections,
-    initialCollections,
-    removeCollection,
-    onSelectedCollections,
-    loading,
-    appliesTo,
-    onAppliesToChange,
+    applyExtensionMetafieldChange, i18n, config, initialConfig, onConfigChange,
+    resetForm, loading, error, excludedProducts, excludedCollections, appliesTo,
+    onAppliesToChange, onPickExcludedProducts, removeExcludedProduct,
+    onPickExcludedCollections, removeExcludedCollection,
   };
 }
 
+// ─── Metafield parser ─────────────────────────────────────────────────────────
 function parseMetafield(value) {
   try {
-    const parsed = JSON.parse(value || "{}");
+    const p = JSON.parse(value || "{}");
     return {
-      percentages: {
-        product: Number(parsed.cartLinePercentage ?? 0),
-        order: Number(parsed.orderPercentage ?? 0),
-        shipping: Number(parsed.deliveryPercentage ?? 0),
-      },
-      collectionIds: parsed.collectionIds ?? [],
+      ratePerUnique:         Number(p.ratePerUnique         ?? 5),
+      minUnique:             Number(p.minUnique             ?? 2),
+      maxDiscount:           Number(p.maxDiscount           ?? 20),
+      excludedProductIds:    Array.isArray(p.excludedProductIds)    ? p.excludedProductIds    : [],
+      excludedCollectionIds: Array.isArray(p.excludedCollectionIds) ? p.excludedCollectionIds : [],
     };
   } catch {
-    return {
-      percentages: {product: 0, order: 0, shipping: 0},
-      collectionIds: [],
-    };
+    return { ratePerUnique: 5, minUnique: 2, maxDiscount: 20, excludedProductIds: [], excludedCollectionIds: [] };
   }
 }
 
-async function getCollections(
-  collectionGids,
-  adminApiQuery,
-) {
-  const query = `#graphql
-    query GetCollections($ids: [ID!]!) {
-      collections: nodes(ids: $ids) {
-        ... on Collection {
-          id
-          title
-        }
-      }
-    }
-  `;
+// ─── Fetch node titles from Admin API ────────────────────────────────────────
+async function fetchNodes(gids, typename, adminApiQuery) {
+  if (!gids?.length) return [];
   const result = await adminApiQuery(
-    query,
-    {variables: {ids: collectionGids}},
+    `#graphql
+      query GetNodes($ids: [ID!]!) {
+        nodes(ids: $ids) {
+          ... on ${typename} { id title }
+        }
+      }`,
+    { variables: { ids: gids } },
   );
-  return result?.data?.collections ?? [];
+  return (result?.data?.nodes ?? []).filter(Boolean);
 }
-
-
